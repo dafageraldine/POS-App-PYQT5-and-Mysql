@@ -12,7 +12,6 @@ class input(QWidget):
 		window.setText("Foto Berhasil Disimpan")
 		cap = cv2.VideoCapture(1)
 		global c
-		global filename
 		while True:
 			check,frame = cap.read()
 			cv2.imshow("camera",frame)
