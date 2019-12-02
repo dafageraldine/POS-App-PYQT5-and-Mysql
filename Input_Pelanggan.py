@@ -30,6 +30,30 @@ class input(QWidget):
 		window.exec_()
 		self.pushbutton.setEnabled(True)
 
+	def takephoto2(self):
+		window =  QtWidgets.QMessageBox()
+		window.setWindowTitle("success")
+		window.setText("Foto Berhasil Disimpan")
+		cap = cv2.VideoCapture(1)
+		global c
+		while True:
+			check,frame = cap.read()
+			cv2.imshow("camera",frame)
+			cv2.namedWindow('camera',cv2.WINDOW_NORMAL)
+			cv2.resizeWindow("camera",300,260)
+			key = cv2.waitKey(1)
+			if key == ord('q'):
+				c = c+1
+				filename = "user" + str(c) + ".jpg"
+				cv2.imwrite(filename,frame)
+				break
+		cap.release()
+		cv2.destroyAllWindows()
+		image = QPixmap(filename)
+		self.label_6.setPixmap(image)
+		window.exec_()
+		self.pushbutton4.setEnabled(True)
+
 	def messagebox(self,title,message):
 		mess = QtWidgets.QMessageBox()
 		mess.setWindowTitle(title)
@@ -39,6 +63,8 @@ class input(QWidget):
 
 	def settings(self):
 		self.score.setEnabled(True)
+		self.pushbutton2.setEnabled(False)
+		self.pushbutton5.setEnabled(True)
 
 	def flag2(self):
 		ID = self.ID.text()
@@ -112,7 +138,10 @@ class input(QWidget):
 			self.alamat.clear()
 			self.hp.clear()
 			self.label_6.clear()
-			self.pushbutton.setEnabled(False)
+			self.score.clear()
+			self.pushbutton5.setEnabled(False)
+			self.pushbutton2.setEnabled(True)
+			self.pushbutton4.setEnabled(False)
 
 	def __init__(self):
 		super().__init__()
@@ -167,6 +196,12 @@ class input(QWidget):
 		self.pushbutton4.setGeometry(QtCore.QRect(30, 410, 140, 23))
 		self.pushbutton4.setEnabled(False)
 		self.pushbutton4.clicked.connect(self.flag2)
+
+		self.pushbutton5 = QtWidgets.QPushButton(self)
+		self.pushbutton5.setText("Ambil gambar Pelanggan Khusus")
+		self.pushbutton5.setGeometry(QtCore.QRect(380, 410, 180, 23))
+		self.pushbutton5.setEnabled(False)
+		self.pushbutton5.clicked.connect(self.takephoto2)
 
 		self.ID = QLineEdit(self)
 		self.ID.move(100,100)
