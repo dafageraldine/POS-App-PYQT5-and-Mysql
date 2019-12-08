@@ -1,236 +1,262 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import (QLineEdit,QWidget,QApplication,QMessageBox,QLabel,QComboBox)
-import sys,cv2,pymysql
-from PyQt5.QtGui import QPixmap
+import sys, json,barcode,random,cv2,pymysql
 import numpy as np
+from PyQt5 import QtWidgets, uic, QtGui, QtCore, QtNetwork
+from PyQt5.QtWidgets import (QLineEdit,QWidget,QApplication,QMessageBox,QLabel,QComboBox)
+from Module.sql import *
 from datetime import datetime
+from barcode.writer import ImageWriter
 
-class input(QWidget):
-	def takephoto(self):
-		window =  QtWidgets.QMessageBox()
-		window.setWindowTitle("success")
-		window.setText("Foto Berhasil Disimpan")
-		cap = cv2.VideoCapture(1)
-		global c
-		while True:
-			check,frame = cap.read()
-			cv2.imshow("camera",frame)
-			cv2.namedWindow('camera',cv2.WINDOW_NORMAL)
-			cv2.resizeWindow("camera",300,260)
-			key = cv2.waitKey(1)
-			if key == ord('q'):
-				c = c+1
-				filename = "user" + str(c) + ".jpg"
-				cv2.imwrite(filename,frame)
-				break
-		cap.release()
-		cv2.destroyAllWindows()
-		image = QPixmap(filename)
-		self.label_6.setPixmap(image)
-		window.exec_()
-		self.pushbutton.setEnabled(True)
+class Ui(QtWidgets.QWidget):
+    pelanggan = MySQL("localhost", "root", "1234", "inputpelanggan")
 
-	def takephoto2(self):
-		window =  QtWidgets.QMessageBox()
-		window.setWindowTitle("success")
-		window.setText("Foto Berhasil Disimpan")
-		cap = cv2.VideoCapture(1)
-		global c
-		while True:
-			check,frame = cap.read()
-			cv2.imshow("camera",frame)
-			cv2.namedWindow('camera',cv2.WINDOW_NORMAL)
-			cv2.resizeWindow("camera",300,260)
-			key = cv2.waitKey(1)
-			if key == ord('q'):
-				c = c+1
-				filename = "user" + str(c) + ".jpg"
-				cv2.imwrite(filename,frame)
-				break
-		cap.release()
-		cv2.destroyAllWindows()
-		image = QPixmap(filename)
-		self.label_6.setPixmap(image)
-		window.exec_()
-		self.pushbutton4.setEnabled(True)
+    def __init__(self):
+        super(Ui, self).__init__()
+        uic.loadUi('pelanggan.ui', self)
 
-	def messagebox(self,title,message):
-		mess = QtWidgets.QMessageBox()
-		mess.setWindowTitle(title)
-		mess.setText(message)
-		mess.setStandardButtons(QtWidgets.QMessageBox.Ok)
-		mess.exec_()
+        getBtn = self.findChild(QtWidgets.QPushButton, 'getBtn')
+        updateBtn = self.findChild(QtWidgets.QPushButton, 'updateBtn')
+        self.form_id = self.findChild(QtWidgets.QLineEdit, 'form_id')
+        self.form_nama = self.findChild(QtWidgets.QLineEdit, 'form_nama')
+        self.form_alamat = self.findChild(QtWidgets.QLineEdit, 'form_alamat')
+        self.form_kontak = self.findChild(QtWidgets.QLineEdit, 'form_kontak')
+        self.nama = self.findChild(QtWidgets.QLineEdit, 'nama')
+        self.alamat = self.findChild(QtWidgets.QLineEdit,'alamat')
+        self.hp = self.findChild(QtWidgets.QLineEdit,'hp')
+        self.score = self.findChild(QtWidgets.QLineEdit,'score')
+        self.score.setEnabled(False)
+        self.pria = self.findChild(QtWidgets.QRadioButton,' pria')
+        self.wanita = self.findChild(QtWidgets.QRadioButton,'wanita')
 
-	def settings(self):
-		self.score.setEnabled(True)
-		self.pushbutton2.setEnabled(False)
-		self.pushbutton5.setEnabled(True)
+        self.img = self.findChild(QtWidgets.QLabel,'label_11')
 
-	def flag2(self):
-		ID = self.ID.text()
-		nama = self.nama.text()
-		alamat = self.alamat.text()
-		hp = self.hp.text()
-		score = self.score.text()
-		if(ID == "" or nama == "" or alamat =="" or hp =="" or score == ""):
-			self.tryagain()
-		else:
-			self.register2()
+        self.inputr = self.findChild(QtWidgets.QPushButton, 'input')
+        self.inputr.clicked.connect(self.flag)
+        self.inputr.setEnabled(False)
 
-	def flag(self):
-		ID = self.ID.text()
-		nama = self.nama.text()
-		alamat = self.alamat.text()
-		hp = self.hp.text()
-		if(ID == "" or nama == "" or alamat =="" or hp ==""):
-			self.tryagain()
-		else:
-			self.register()
+        self.inputpk = self.findChild(QtWidgets.QPushButton,'inputpk')
+        self.inputpk.setEnabled(False)
+        self.inputpk.clicked.connect(self.flag2)
 
-	def tryagain(self):
-		win = QtWidgets.QMessageBox()
-		win.setWindowTitle("GAGAL")
-		win.setText("Data Tidak Boleh Kosong")
-		win.setStandardButtons(QtWidgets.QMessageBox.Ok)
-		win.exec_()
+        self.ambilgambar = self.findChild(QtWidgets.QPushButton,'ambilgambar')
+        self.ambilgambar.clicked.connect(self.takephoto)
 
-	def register(self):
-		ID = self.ID.text()
-		nama = self.nama.text()
-		alamat = self.alamat.text()
-		hp = self.hp.text()
-		now = datetime.now()
-		Saldo = 0
-		score = 0
-		time = now.strftime("%d/%m/%Y %H:%M:%S")
-		conn = pymysql.connect(host="localhost",user="root",password="1234",database="inputpelanggan")
-		cur = conn.cursor()
-		query= ("insert into register(ID,nama,alamat,hp,Time,Saldo,score) values(%s,%s,%s,%s,%s,%s,%s)")
-		data =cur.execute(query,(ID,nama,alamat,hp,time,Saldo,score))
-		conn.commit()
-		if (data):
-			self.messagebox("success","data berhasil di input")
-			self.ID.clear()
-			self.nama.clear()
-			self.alamat.clear()
-			self.hp.clear()
-			self.label_6.clear()
-			self.pushbutton.setEnabled(False)
+        self.pk = self.findChild(QtWidgets.QPushButton,'pk')
+        self.pk.clicked.connect(self.settings)
 
-	def register2(self):
-		ID = self.ID.text()
-		nama = self.nama.text()
-		alamat = self.alamat.text()
-		hp = self.hp.text()
-		now = datetime.now()
-		Saldo = 0
-		score = self.score.text()
-		time = now.strftime("%d/%m/%Y %H:%M:%S")
-		conn = pymysql.connect(host="localhost",user="root",password="1234",database="inputpelanggan")
-		cur = conn.cursor()
-		query= ("insert into register(ID,nama,alamat,hp,Time,Saldo,score) values(%s,%s,%s,%s,%s,%s,%s)")
-		data =cur.execute(query,(ID,nama,alamat,hp,time,Saldo,score))
-		conn.commit()
-		if (data):
-			self.messagebox("success","data berhasil di input")
-			self.ID.clear()
-			self.nama.clear()
-			self.alamat.clear()
-			self.hp.clear()
-			self.label_6.clear()
-			self.score.clear()
-			self.pushbutton5.setEnabled(False)
-			self.pushbutton2.setEnabled(True)
-			self.pushbutton4.setEnabled(False)
+        self.ambilgambarpk = self.findChild(QtWidgets.QPushButton,'ambilgambarpk')
+        self.ambilgambarpk.clicked.connect(self.takephoto2)
+        self.ambilgambarpk.setEnabled(False)
 
-	def __init__(self):
-		super().__init__()
-		self.setWindowTitle("Input Pelanggan")
-		self.setGeometry(500,100,640,480)
+        getBtn.clicked.connect(self.getData)
+        updateBtn.clicked.connect(self.updateData)
 
-		self.label = QtWidgets.QLabel(self)
-		self.label.setGeometry(QtCore.QRect(30, 100, 71, 16))
-		self.label.setText("ID Pelanggan")
+        self.show()
 
-		self.label_2 = QtWidgets.QLabel(self)
-		self.label_2.setText("Nama")	
-		self.label_2.setGeometry(30, 140, 47, 13)
+    def takephoto(self):
+        window =  QtWidgets.QMessageBox()
+        window.setWindowTitle("success")
+        window.setText("Foto Berhasil Disimpan")
+        cap = cv2.VideoCapture(0)
+        global c
+        while True:
+            check,frame = cap.read()
+            cv2.imshow("camera",frame)
+            cv2.namedWindow('camera',cv2.WINDOW_NORMAL)
+            cv2.resizeWindow("camera",640,480)
+            key = cv2.waitKey(1)
+            if key == ord('q'):
+                c = c+1
+                filename = "user" + str(c) + ".jpg"
+                cv2.imwrite(filename,frame)
+                break
+        cap.release()
+        cv2.destroyAllWindows()
+        image = QtGui.QPixmap(filename)
+        self.img.setPixmap(image)
+        window.exec_()
+        self.inputr.setEnabled(True)
 
-		self.label_3 = QtWidgets.QLabel(self)
-		self.label_3.setText("Alamat")
-		self.label_3.setGeometry(QtCore.QRect(30, 180, 47, 13))
+    def takephoto2(self):
+        window =  QtWidgets.QMessageBox()
+        window.setWindowTitle("success")
+        window.setText("Foto Berhasil Disimpan")
+        cap = cv2.VideoCapture(0)
+        global c
+        while True:
+            check,frame = cap.read()
+            cv2.imshow("camera",frame)
+            cv2.namedWindow('camera',cv2.WINDOW_NORMAL)
+            cv2.resizeWindow("camera",300,260)
+            key = cv2.waitKey(1)
+            if key == ord('q'):
+                c = c+1
+                filename = "user" + str(c) + ".jpg"
+                cv2.imwrite(filename,frame)
+                break
+        cap.release()
+        cv2.destroyAllWindows()
+        image = QtGui.QPixmap(filename)
+        self.img.setPixmap(image)
+        window.exec_()
+        self.inputpk.setEnabled(True)
 
-		self.label_4 = QtWidgets.QLabel(self)
-		self.label_4.setText("No Hp")
-		self.label_4.setGeometry(QtCore.QRect(30, 220, 47, 13))
+    def flag(self):
+        nama = self.nama.text()
+        alamat = self.alamat.text()
+        hp = self.hp.text()
+        if(nama == "" or alamat =="" or hp ==""):
+            self.tryagain()
+        else:
+            self.register()
 
-		self.label_5 = QtWidgets.QLabel(self)
-		self.label_5.setText("Foto")
-		self.label_5.setGeometry(QtCore.QRect(300, 100, 47, 13))
+    def flag2(self):
+        nama = self.nama.text()
+        alamat = self.alamat.text()
+        hp = self.hp.text()
+        score = self.score.text()
+        if(nama == "" or alamat =="" or hp =="" or score == ""):
+            self.tryagain()
+        else:
+            self.register2()
 
-		self.label_6 = QtWidgets.QLabel(self)
-		self.label_6.setGeometry(QtCore.QRect(300, 130,300, 260))
+    def tryagain(self):
+        win = QtWidgets.QMessageBox()
+        win.setWindowTitle("GAGAL")
+        win.setText("Data Tidak Boleh Kosong")
+        win.setStandardButtons(QtWidgets.QMessageBox.Ok)
+        win.exec_()
 
-		self.label_7 = QtWidgets.QLabel(self)
-		self.label_7.setText("score")
-		self.label_7.setGeometry(QtCore.QRect(30,260,47,13))
+    def settings(self):
+        self.score.setEnabled(True)
+        self.ambilgambar.setEnabled(False)
+        self.ambilgambarpk.setEnabled(True)
 
-		self.pushbutton = QtWidgets.QPushButton(self)
-		self.pushbutton.setEnabled(False)
-		self.pushbutton.setText("Input")
-		self.pushbutton.setGeometry(QtCore.QRect(200, 410, 75, 23))
-		self.pushbutton.clicked.connect(self.flag)
+    def register(self):
+        nama = self.nama.text()
+        alamat = self.alamat.text()
+        hp = self.hp.text()
+        now = datetime.now()
+        Saldo = 0
+        score = 0
+        global d
 
-		self.pushbutton2 = QtWidgets.QPushButton(self)
-		self.pushbutton2.setText("Ambil gambar")
-		self.pushbutton2.setGeometry(QtCore.QRect(300, 410, 75, 23))
-		self.pushbutton2.clicked.connect(self.takephoto)
+        bar = self.pelanggan.select("ID", "register", True)
+        bar = '{:04d}'.format(len(bar)+1)
+        bar = "BEA-" + str(bar)
+        EAN = barcode.get_barcode_class('code39')
+        ean = EAN(str(bar),writer=ImageWriter())
+        d = d+1
+        png = "barcode" + str(d)
+        ean.save(png)
 
-		self.pushbutton3 = QtWidgets.QPushButton(self)
-		self.pushbutton3.setText("Pelanggan Khusus")
-		self.pushbutton3.setGeometry(QtCore.QRect(30, 60, 140, 23))
-		self.pushbutton3.clicked.connect(self.settings)
+        time = now.strftime("%d/%m/%Y %H:%M:%S")
+        data = "\"{}\",\"{}\",{},\"{}\",{},{},\"{}\""
+        data = data.format(nama,alamat,hp,time,Saldo,score,bar)
+        self.pelanggan.insertTo("register", "nama,alamat,hp,Time,saldo,score,bar", data)
+        # conn.commit()
+        if (data):
+            self.messagebox("success","data berhasil di input")
+            self.nama.clear()
+            self.alamat.clear()
+            self.hp.clear()
+            self.img.clear()
+            self.inputr.setEnabled(False)
 
-		self.pushbutton4 = QtWidgets.QPushButton(self)
-		self.pushbutton4.setText("Input Pelanggan Khusus")
-		self.pushbutton4.setGeometry(QtCore.QRect(30, 410, 140, 23))
-		self.pushbutton4.setEnabled(False)
-		self.pushbutton4.clicked.connect(self.flag2)
+    def register2(self):
+        nama = self.nama.text()
+        alamat = self.alamat.text()
+        hp = self.hp.text()
+        now = datetime.now()
+        Saldo = 0
+        score = self.score.text()
+        
+        global d
+        bar = random.randrange(1,10000000000000)
+        EAN = barcode.get_barcode_class('ean13')
+        ean = EAN(str(bar),writer=ImageWriter())
+        d = d+1
+        png = "barcode" + str(d)
+        ean.save(png)
 
-		self.pushbutton5 = QtWidgets.QPushButton(self)
-		self.pushbutton5.setText("Ambil gambar Pelanggan Khusus")
-		self.pushbutton5.setGeometry(QtCore.QRect(380, 410, 180, 23))
-		self.pushbutton5.setEnabled(False)
-		self.pushbutton5.clicked.connect(self.takephoto2)
+        time = now.strftime("%d/%m/%Y %H:%M:%S")
+        conn = pymysql.connect(host="localhost",user="root",password="1234",database="inputpelanggan")
+        cur = conn.cursor()
+        query= ("insert into register(nama,alamat,hp,Time,Saldo,score,bar) values(,%s,%s,%s,%s,%s,%s,%s)")
+        data =cur.execute(query,(nama,alamat,hp,time,Saldo,score,code))
+        conn.commit()
+        if (data):
+            self.messagebox("success","data berhasil di input")
+            self.nama.clear()
+            self.alamat.clear()
+            self.hp.clear()
+            self.img.clear()
+            self.score.clear()
+            self.ambilgambarpk.setEnabled(False)
+            self.ambilgambar.setEnabled(True)
+            self.inputpk.setEnabled(False)
 
-		self.ID = QLineEdit(self)
-		self.ID.move(100,100)
-		self.ID.setPlaceholderText("masukkan ID Anda")
-		self.ID.setObjectName("ID")
+    def messagebox(self,title,message):
+        mess = QtWidgets.QMessageBox()
+        mess.setWindowTitle(title)
+        mess.setText(message)
+        mess.setStandardButtons(QtWidgets.QMessageBox.Ok)
+        mess.exec_()
 
-		self.nama = QLineEdit(self)
-		self.nama.move(100,140)
-		self.nama.setPlaceholderText("masukkan Nama Anda")
-		self.nama.setObjectName("nama")
+    def showDialog(self, msgType:str, title:str, message:str, action1 = None, action2 = None):
+        msgBox = QtWidgets.QMessageBox()
+        if msgType is "critical":
+            msgBox.critical(self, title, message)
+        elif msgType is "warning":
+            msgBox.warning(self, title, message)
+        elif msgType is "information":
+            msgBox.information(self, title, message)
+        elif msgType is "question":
+            msgBox.question(self, title, message)
 
-		self.alamat = QLineEdit(self)
-		self.alamat.move(100,180)
-		self.alamat.setPlaceholderText("masukkan Alamat Anda")
-		self.alamat.setObjectName("alamat")
+    def getData(self):
+        # val = "\"{}\",\"{}\",\"{}\",\"{}\""
+        # val = val.format(self.form_id.text(), self.form_nama.text(), self.form_alamat.text(),
+        #                  self.form_kontak.text())
+        self.key = "nama = \"{}\""
+        self.key = self.key.format(self.form_nama.text())
+        data = self.pelanggan.find("ID, nama, alamat, hp", "register", self.key, False)
 
-		self.hp = QLineEdit(self)
-		self.hp.move(100,220)
-		self.hp.setPlaceholderText("masukkan No HP Anda")
-		self.hp.setObjectName("hp")
+        self.form_id.setText(str(data[0]))
+        self.form_nama.setText(str(data[1]))
+        self.form_alamat.setText(str(data[2]))
+        self.form_kontak.setText(str(data[3]))
+        self.doRequest()
 
-		self.score = QLineEdit(self)
-		self.score.move(100,260)
-		self.score.setPlaceholderText("masukkan score")
-		self.score.setEnabled(False)
+    def doRequest(self):   
+    
+        url = "http://192.168.100.65:5000/api/pelanggan"
+        req = QtNetwork.QNetworkRequest(QtCore.QUrl(url))
+        
+        self.nam = QtNetwork.QNetworkAccessManager()
+        self.nam.finished.connect(self.handleResponse)
+        self.nam.get(req)
+             
+    def handleResponse(self, reply):
+
+        er = reply.error()
+        
+        if er == QtNetwork.QNetworkReply.NoError:
+    
+            bytes_string = reply.readAll()
+            data = json.loads(str(bytes_string, 'utf-8'))
+            print(data[0]['nama'])
+        else:
+            print(er)
+
+    def updateData(self):
+        setValue = "ID = \"{}\", nama = \"{}\", alamat = \"{}\", hp = \"{}\""
+        setValue = setValue.format(self.form_id.text(), self.form_nama.text(), self.form_alamat.text(), self.form_kontak.text())
+        self.pelanggan.update("register", setValue, self.key)
+        self.showDialog("information", "Update Data", "Data has been updated!")
 
 c=0
-if __name__ == '__main__':
-	app = QApplication(sys.argv)
-	inputpelanggan = input()
-	inputpelanggan.show()
-	sys.exit(app.exec_())
+d=0
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+    window = Ui()
+    app.exec_()
