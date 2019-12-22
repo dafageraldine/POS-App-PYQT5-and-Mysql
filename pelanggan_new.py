@@ -1,8 +1,9 @@
-import sys,barcode,random,cv2
+import sys,cv2
 import numpy as np
 from PyQt5 import QtWidgets, uic, QtGui, QtCore, QtNetwork
 from PyQt5.QtWidgets import (QLineEdit,QWidget,QApplication,QMessageBox,QLabel,QComboBox)
 from Module.sql import *
+from Module.topup_new import *
 from datetime import datetime
 from barcode.writer import ImageWriter
 
@@ -17,17 +18,16 @@ class Pelanggan():
 		self.w = QtWidgets.QWidget(widget)
 		self.w.setGeometry(250,50,1366,768)
 
+		self.topup_new = Topup(widget)
 		self.data = QtWidgets.QLabel(self.w)
 		self.data.setGeometry(QtCore.QRect(210, 15, 115, 17))
 		self.data.setText("Data pelanggan")
 		self.data.setFont(font)
-		# self.data.hide()
 
 		self.comboBox = QtWidgets.QComboBox(self.w)
 		self.comboBox.setGeometry(QtCore.QRect(10, 15, 131, 31))
 		self.comboBox.addItem("Regular")
 		self.comboBox.addItem("Khusus")
-		# self.comboBox.hide()
 		self.comboBox.currentTextChanged.connect(self.change)
 		
 		self.line_2 = QtWidgets.QFrame(self.w)
@@ -35,7 +35,6 @@ class Pelanggan():
 		self.line_2.setStyleSheet("border-top:3px solid black")
 		self.line_2.setFrameShape(QtWidgets.QFrame.HLine)
 		self.line_2.setFrameShadow(QtWidgets.QFrame.Sunken)
-		# self.line_2.hide()
 
 		self.img = QtWidgets.QLabel(self.w)
 		self.pixmap = QtGui.QPixmap("placeholder.png")
@@ -149,15 +148,6 @@ class Pelanggan():
 		self.saldo.setPlaceholderText("Rp 0")
 		self.saldo.setEnabled(False)
 
-		self.saldo2 = QLineEdit(self.w)
-		# self.saldo2.hide()
-		self.saldo2.setFont(font)
-		self.saldo2.setGeometry(QtCore.QRect(850, 250, 241, 51))
-		self.saldo2.setStyleSheet("background :#00c853;\n"
-			"position : center;\n"
-			"color : white")
-		self.saldo2.hide()
-
 		self.cari = QtWidgets.QLineEdit(self.w)
 		self.cari.setGeometry(QtCore.QRect(20, 310, 981, 29))
 		self.cari.setStyleSheet("border-radius: 10px;\n"
@@ -196,7 +186,6 @@ class Pelanggan():
 		self.tabelPelanggan.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
 		self.tabelPelanggan.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 		self.tabelPelanggan.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-		# self.tabelPelanggan.setObjectName("tabelPelanggan")
 		self.tabelPelanggan.setColumnCount(10)
 		self.tabelPelanggan.setRowCount(0)
 		item = QtWidgets.QTableWidgetItem()
@@ -304,16 +293,15 @@ class Pelanggan():
 			self.parent.showDialog("information", "Informasi","Tolong pilih pelanggan yang hendak Topup")
 			return
 		else:
-			self.saldo2.show()
-			self.point2.show()
 			self.hapus.setEnabled(False)
+			self.topup_new.show()
+
 	
 	def change(self):
 		if (self.comboBox.currentText() == "Khusus"):
 			
 			self.tabelPelanggan.clearSelection()
 			self.Khusus.show()
-			self.saldo.setEnabled(True)
 			self.nama.clear()
 			self.alamat.clear()
 			self.hp.clear()
@@ -325,8 +313,7 @@ class Pelanggan():
 			self.gender.hide()
 			self.radioButton.show()
 			self.radioButton_2.show()
-			self.saldo2.hide()
-			self.point2.hide()
+			self.point2.show()
 			self.point.clear()
 			self.img.setPixmap(self.pixmap.scaled(200, 170, QtCore.Qt.KeepAspectRatio))
 			self.hapus.setEnabled(True)
@@ -334,7 +321,6 @@ class Pelanggan():
 		elif(self.comboBox.currentText() == "Regular"):
 			
 			self.Khusus.hide()
-			self.saldo.setEnabled(False)
 			self.tabelPelanggan.clearSelection()
 			self.nama.clear()
 			self.alamat.clear()
@@ -346,7 +332,6 @@ class Pelanggan():
 			self.labelid.hide()
 			self.gender.clear()
 			self.gender.hide()
-			self.saldo2.hide()
 			self.point2.hide()
 			self.radioButton.show()
 			self.radioButton_2.show()
@@ -376,7 +361,7 @@ class Pelanggan():
 	
 			if (self.comboBox.currentText() == "Khusus"):
 				if (self.radioButton.isChecked() or self.radioButton_2.isChecked()):
-					if(self.nama.text() and self.alamat.text() and self.hp.text() and self.saldo.text() != ""):
+					if(self.nama.text() and self.alamat.text() and self.hp.text() and self.point2.text() != ""):
 						if(n >= 1):
 							n = 0
 							self.register()
@@ -403,22 +388,12 @@ class Pelanggan():
 			member = "Silver"
 		if (points > 150 ):
 			member = "Gold"
-		if(self.saldo2.text() == ""):
-			value = self.saldo.text()[3:]
-			saldos = int(value)
-		elif(self.saldo2.text() is not None):
-			value = self.saldo.text()[3:]
-			saldos = int(value) + int(self.saldo2.text())
-			x =1
 		key = "idPelanggan = \"{}\", nama = \"{}\",gender = \"{}\",member= \"{}\",alamat= \"{}\",kontak= \"{}\",foto= \"{}\",saldo= \"{}\",point= \"{}\""
-		key = key.format(idp,self.nama.text(),self.gender.text(),member, self.alamat.text(),self.hp.text(),self.filename,saldos,points)
+		key = key.format(idp,self.nama.text(),self.gender.text(),member, self.alamat.text(),self.hp.text(),self.filename,0,points)
 		ids = "idPelanggan = \"{}\""
 		ids = ids.format(idp)
-		err = self.pelanggan.update("pelanggan",key,ids)
-		if x == 1:
-			val = "{},\"{}\",\"{}\",\"{}\""
-			val = val.format(int(self.saldo2.text()),idp,self.nama.text(),"Top up")
-			self.pelanggan.insertTo("transaksi","harga,idPelanggan,pelanggan,jenisTransaksi",val)		
+		self.pelanggan.update("pelanggan",key,ids)
+				
 		self.parent.showDialog("information","success","data berhasil di input")
 		self.getProduct()
 		self.nama.clear()
@@ -431,12 +406,10 @@ class Pelanggan():
 		self.radioButton_2.show()
 		self.point.clear()
 		self.img.setPixmap(self.pixmap.scaled(200, 170, QtCore.Qt.KeepAspectRatio))
-		self.saldo2.clear()
 		self.point2.clear()
 		self.ID.clear()
 		self.ID.hide()
 		self.labelid.hide()
-		self.saldo2.hide()
 		self.point2.hide()
 		self.tabelPelanggan.clearSelection()
 		self.hapus.setEnabled(True)
@@ -454,7 +427,6 @@ class Pelanggan():
 				err = self.pelanggan.insertTo(
                 		"pelanggan", "idPelanggan,nama,gender,member,alamat,kontak,foto,saldo,point", val)
 				self.parent.showDialog("information","success","data berhasil di input")
-				self.barcode()
 				self.getProduct()
 				self.nama.clear()
 				self.alamat.clear()
@@ -476,7 +448,6 @@ class Pelanggan():
 				err = self.pelanggan.insertTo(
 					"pelanggan", "idPelanggan,nama,gender,member,alamat,kontak,foto,saldo,point", val)
 				self.parent.showDialog("information","success","data berhasil di input")
-				self.barcode()
 				self.getProduct()
 				self.nama.clear()
 				self.alamat.clear()
@@ -491,20 +462,26 @@ class Pelanggan():
 
 		if (self.comboBox.currentText() == "Khusus"):
 			if (self.radioButton.isChecked()):
-				point = 0
-				if (point == 0):member = "Bronze"
+				points = int(self.point2.text())
+				if (points < 30):
+					member = "Bronze"
+				if (points >= 30 and points < 150):
+					member = "Silver"
+				if (points > 150 ):
+					member = "Gold"
 
 				val = "\"{}\",\"{}\",\"{}\",\"{}\",\"{}\",\"{}\",\"{}\",{},{}"
-				val = val.format(idp,self.nama.text(),"Laki-laki",member, self.alamat.text(),self.hp.text(),self.filename,self.saldo.text(),0)
+				val = val.format(idp,self.nama.text(),"Laki-laki",member, self.alamat.text(),self.hp.text(),self.filename,0,self.point2.text())
 				err = self.pelanggan.insertTo(
                 		"pelanggan", "idPelanggan,nama,gender,member,alamat,kontak,foto,saldo,point", val)
 				self.parent.showDialog("information","success","data berhasil di input")
-				self.barcode()
 				self.getProduct()
 				self.nama.clear()
 				self.alamat.clear()
 				self.hp.clear()
-				self.saldo.clear()
+				self.point.clear()
+				self.point2.clear()
+				self.point2.hide()
 				self.ID.clear()
 				self.ID.hide()
 				self.labelid.hide()
@@ -513,32 +490,32 @@ class Pelanggan():
 				self.hapus.setEnabled(True)
 
 			if (self.radioButton_2.isChecked()):
-				point = 0
-				if (point == 0):member = "Bronze"
+				points = int(self.point2.text())
+				if (points < 30):
+					member = "Bronze"
+				if (points >= 30 and points < 150):
+					member = "Silver"
+				if (points > 150 ):
+					member = "Gold"
 
 				val = "\"{}\",\"{}\",\"{}\",\"{}\",\"{}\",\"{}\",\"{}\",{},{}"
-				val = val.format(idp,self.nama.text(),"Perempuan",member, self.alamat.text(),self.hp.text(),self.filename,self.saldo.text(),0)
+				val = val.format(idp,self.nama.text(),"Perempuan",member, self.alamat.text(),self.hp.text(),self.filename,0,self.point2.text())
 				err = self.pelanggan.insertTo(
 					"pelanggan", "idPelanggan,nama,gender,member,alamat,kontak,foto,saldo,point", val)
 				self.parent.showDialog("information","success","data berhasil di input")
-				self.barcode()
 				self.getProduct()
 				self.nama.clear()
 				self.alamat.clear()
 				self.hp.clear()
-				self.saldo.clear()
+				self.point.clear()
+				self.point2.clear()
+				self.point2.hide()
 				self.ID.clear()
 				self.ID.hide()
 				self.labelid.hide()
 				self.img.setPixmap(self.pixmap.scaled(200, 170, QtCore.Qt.KeepAspectRatio))
 				self.tabelPelanggan.clearSelection()
 				self.hapus.setEnabled(True)
-
-	def barcode(self):
-		bar = self.code
-		EAN = barcode.codex.Code39(bar,writer=ImageWriter(),add_checksum=False)
-		png = self.code
-		EAN.save(png)
 
 	def takephoto(self):
 		global n
@@ -639,7 +616,8 @@ class Pelanggan():
 			self.alamat.clear()
 			self.hp.clear()
 			self.saldo.clear()
-			self.point.clear
+			self.point.clear()
+			self.point2.hide()
 			self.ID.clear()
 			self.gender.clear()
 			self.radioButton.show()
@@ -696,7 +674,6 @@ class Pelanggan():
 		self.radioButton.hide()
 		self.radioButton_2.hide()
 		self.gender.show()
-		self.saldo.setEnabled(False)
 		self.Khusus.hide()
 		self.ID.setText(self.tabelPelanggan.item(row, 1).text())
 		self.nama.setText(self.tabelPelanggan.item(row, 2).text())
@@ -707,6 +684,8 @@ class Pelanggan():
 		self.point.setText(self.tabelPelanggan.item(row, 9).text())
 		imagess = QtGui.QPixmap(self.tabelPelanggan.item(row,7).text())	
 		self.img.setPixmap(imagess.scaled(200,250,QtCore.Qt.KeepAspectRatio))
+
+	# def print(self):
 
 	def show(self):
 		self.w.show()
