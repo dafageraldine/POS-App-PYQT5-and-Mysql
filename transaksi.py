@@ -1,6 +1,9 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from Module.sql import *
 from Module.pelanggan_new import *
+import os,datetime
+# from docx import Document
+
 
 class Transaksi():
     pelanggan = db("localhost", "root", "1234", "bullEyeArchery")
@@ -127,9 +130,9 @@ class Transaksi():
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
 
         self.scrollArea.setWidget(self.tabelView)
-        self.saldo = QtWidgets.QLineEdit(self.transaksiWidget)
-        self.saldo.setGeometry(QtCore.QRect(790, 240, 281, 41))
-        self.saldo.setStyleSheet("background-color: #00c853;\n"
+        self.saldo2 = QtWidgets.QLineEdit(self.transaksiWidget)
+        self.saldo2.setGeometry(QtCore.QRect(790, 240, 281, 41))
+        self.saldo2.setStyleSheet("background-color: #00c853;\n"
             "border: 2px solid #00c853;\n"
             "color:white;\n"
             "padding: 0 10px;\n"
@@ -149,10 +152,10 @@ class Transaksi():
                 "    border: 2px solid red;\n"
                 "    color: red;\n"
                 "}")
-        self.cancel.clicked.connect(self.undo)
-        self.saldo.setAlignment(QtCore.Qt.AlignCenter)
-        self.saldo.setReadOnly(True)
-        self.saldo.setObjectName("saldo")
+        self.cancel.clicked.connect(self.dont)
+        self.saldo2.setAlignment(QtCore.Qt.AlignCenter)
+        self.saldo2.setReadOnly(True)
+        self.saldo2.setObjectName("saldo")
         self.label_saldo = QtWidgets.QLabel(self.transaksiWidget)
         self.label_saldo.setGeometry(QtCore.QRect(906, 207, 51, 20))
         font = QtGui.QFont()
@@ -208,6 +211,7 @@ class Transaksi():
             "    color: #2962ff;\n"
             "}")
         self.prosesBtn.setObjectName("prosesBtn")
+        self.prosesBtn.clicked.connect(self.go)
         self.hapusBtn = QtWidgets.QPushButton(self.transaksiWidget)
         self.hapusBtn.setGeometry(QtCore.QRect(830, 710, 131, 31))
         self.hapusBtn.setStyleSheet("QPushButton {\n"
@@ -277,7 +281,7 @@ class Transaksi():
         item.setText(_translate("transaksiWidget", "Diskon%"))
         item = self.tabelTransaksi.horizontalHeaderItem(5)
         item.setText(_translate("transaksiWidget", "Jumlah"))
-        self.saldo.setText(_translate("transaksiWidget", "Rp 0"))
+        self.saldo2.setText(_translate("transaksiWidget", "Rp 0"))
         self.label_saldo.setText(_translate("transaksiWidget", "Saldo"))
         self.point.setText(_translate("transaksiWidget", "0"))
         self.label_point.setText(_translate("transaksiWidget", "Point"))
@@ -308,12 +312,13 @@ class Transaksi():
 
     def deleteProduct(self):
         i = 0
-        tt = self.tabelTransaksi.selectedItems()
-        if len(tt) < 1:
-            self.parent.showDialog("information", "Informasi","Tolong pilih pelanggan yang hendak dihapus")
+        tt = self.tabelTransaksi.currentRow()
+        if tt <= -1:
+            self.parent.showDialog("information", "Informasi","Tolong pilih item yang hendak dihapus")
             return 
-        for index in sorted(tt):
-            self.tabelTransaksi.removeRow(index.row()) 
+        else:
+            self.tabelTransaksi.removeRow(tt) 
+        self.count()
 
     def search(self):
         if self.id.text() == "":
@@ -345,12 +350,28 @@ class Transaksi():
                     if col is 4:
                         val = self.nomor_hp.setText(str(val))
                     if col is 5:
-                        val = self.saldo.setText(str(val))
+                        val = self.saldo2.setText(str(val))
                     if col is 6:
                         val = self.point.setText(str(val))
                     col = col + 1
             if self.nama.text() == "":
                 self.parent.showDialog("warning","warning","tidak ada data yang cocok")
+
+    def dont(self):
+        self.id.clear()
+        self.nama.clear()
+        self.gender.clear()
+        self.alamat.clear()
+        self.nomor_hp.clear()
+        self.saldo2.clear()
+        self.point.clear()
+        self.total.setText("Rp0")
+        pixmap = QtGui.QPixmap("placeholder.png")
+        self.img.setPixmap(pixmap.scaled(200, 170, QtCore.Qt.KeepAspectRatio))
+        row = self.tabelTransaksi.rowCount()
+        for i in range (row):
+            self.tabelTransaksi.removeRow(0)
+            self.tabelTransaksi.removeRow(i)
 
     def undo(self):
         self.id.clear()
@@ -358,7 +379,64 @@ class Transaksi():
         self.gender.clear()
         self.alamat.clear()
         self.nomor_hp.clear()
-        self.saldo.clear()
+        self.saldo2.clear()
         self.point.clear()
         pixmap = QtGui.QPixmap("placeholder.png")
         self.img.setPixmap(pixmap.scaled(200, 170, QtCore.Qt.KeepAspectRatio))
+
+    def count(self):
+        ttl =[]
+        row = self.tabelTransaksi.rowCount()
+        for i in range (row):
+            item = self.tabelTransaksi.item(i,5).text()
+            ttl.append(int(item))
+        self.alls = 0
+        for x in range (row):
+            self.alls = self.alls + ttl[x]
+        self.total.setText("Rp " + str(self.alls))
+
+    def struck(self):
+        row = self.tabelTransaksi.rowCount()
+        self.records = []
+        for i in range (row):
+            self.records.append([])
+            for j in range (4):
+                if j == 0:
+                    item = self.tabelTransaksi.item(i,1).text()
+                if j == 1:
+                    item = self.tabelTransaksi.item(i,3).text()
+                if j == 2:
+                    item = self.tabelTransaksi.item(i,2).text()
+                if j == 3:
+                    item = self.tabelTransaksi.item(i,5).text()
+                self.records[i].append(item)
+
+    def go(self):
+        saldo = self.saldo2.text()
+        x = self.total.text()
+        price = x[3:]
+        row = self.tabelTransaksi.rowCount()
+        if row == 0:
+            self.parent.showDialog("warning", "warning","anda belum memilih item untuk dibeli")
+        if row > 0:
+            if self.nama.text() == "":
+                self.parent.showDialog("warning", "warning","tidak ada data pelanggan pada form")
+                return
+            if (int(saldo) < int(price)):
+                self.parent.showDialog("warning", "warning","saldo tidak mencukupi silahkan lakukan Top up terlebih dahulu")
+                return
+            if (int(saldo) >= int(price)):
+                money = int(self.saldo2.text())
+                lastmoney = money - self.alls 
+                val = "saldo= {}"
+                val = val.format(lastmoney)
+                key = "idPelanggan = \"{}\""
+                key = key.format(self.id.text())
+                self.pelanggan.update("pelanggan",val,key)
+                self.struck()
+                self.parent.showDialog("information", "Informasi","Transaksi Berhasil")
+                self.dont()
+                # QtWidgets.QMessageBox.Yes:
+        # print("halo")
+
+    # def print(self):
