@@ -2,12 +2,12 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from Module.sql import *
 from Module.pelanggan_new import *
 import os,datetime
-# from docx import Document
-
+from docx import Document
+from docx.shared import Mm
+from docx.shared import Pt
+from docx.shared import Length
 
 class Transaksi():
-    pelanggan = db("localhost", "root", "1234", "bullEyeArchery")
-
     def __init__(self, w):
         self.pelanggan = w.mysql
         self.parent = w
@@ -26,10 +26,12 @@ class Transaksi():
         self.id.setGeometry(QtCore.QRect(518, 52, 371, 25))
         font = QtGui.QFont()
         font.setPointSize(12)
-        self.id.setFont(font)
-        self.id.setPlaceholderText("")
+        # self.id.setFont(font)
+        self.id.setPlaceholderText("Masukkan idPelanggan atau scan kartu")
         self.id.setClearButtonEnabled(True)
         self.id.setObjectName("id")
+        self.id.returnPressed.connect(self.search)
+        # self.clear = qt
         self.alamat = QtWidgets.QLineEdit(self.transaksiWidget)
         self.alamat.setGeometry(QtCore.QRect(518, 142, 371, 25))
         font = QtGui.QFont()
@@ -37,6 +39,7 @@ class Transaksi():
         self.alamat.setFont(font)
         self.alamat.setClearButtonEnabled(True)
         self.alamat.setObjectName("alamat")
+        # self.alamat.setReadOnly(True)
         self.horizontal_line = QtWidgets.QFrame(self.transaksiWidget)
         self.horizontal_line.setGeometry(QtCore.QRect(40, 290, 1061, 20))
         self.horizontal_line.setStyleSheet("")
@@ -48,8 +51,9 @@ class Transaksi():
         font = QtGui.QFont()
         font.setPointSize(12)
         self.nomor_hp.setFont(font)
-        self.nomor_hp.setClearButtonEnabled(True)
+        # self.nomor_hp.setClearButtonEnabled(True)
         self.nomor_hp.setObjectName("nomor_hp")
+        self.nomor_hp.setReadOnly(True)
         self.nama = QtWidgets.QLineEdit(self.transaksiWidget)
         self.nama.setGeometry(QtCore.QRect(518, 82, 371, 25))
         font = QtGui.QFont()
@@ -57,6 +61,7 @@ class Transaksi():
         self.nama.setFont(font)
         self.nama.setClearButtonEnabled(True)
         self.nama.setObjectName("nama")
+        # self.nama.setReadOnly(True)
         self.label_alamat = QtWidgets.QLabel(self.transaksiWidget)
         self.label_alamat.setGeometry(QtCore.QRect(440, 142, 51, 25))
         font = QtGui.QFont()
@@ -68,6 +73,7 @@ class Transaksi():
         font = QtGui.QFont()
         font.setPointSize(12)
         self.gender.setFont(font)
+        self.gender.setReadOnly(True)
         self.img = QtWidgets.QLabel(self.transaksiWidget)
         pixmap = QtGui.QPixmap("placeholder.png")
         self.img.setPixmap(pixmap.scaled(200, 170, QtCore.Qt.KeepAspectRatio))
@@ -239,25 +245,6 @@ class Transaksi():
         self.comboBox.addItem("")
         self.comboBox.addItem("")
 
-        self.cariBtn_2 = QtWidgets.QPushButton(self.transaksiWidget)
-        self.cariBtn_2.setGeometry(QtCore.QRect(360, 240, 171, 41))
-        self.cariBtn_2.setStyleSheet("QPushButton {\n"
-                    "    background: #555;\n"
-                    "    border-radius: 6px;\n"
-                    "    border: none;\n"
-                    "    color: white;\n"
-                    "    outline: none;\n"
-                    "}\n"
-                    "\n"
-                    "QPushButton:pressed {\n"
-                    "    border: 2px solid #555;\n"
-                    "    background: white;\n"
-                    "    color: #555;\n"
-                    "}")
-        self.cariBtn_2.setText("Cari")
-        self.cariBtn_2.setFont(font)
-        self.cariBtn_2.clicked.connect(self.search)
-
         self.retranslateUi(w)
         QtCore.QMetaObject.connectSlotsByName(self.transaksiWidget)
         self.transaksiWidget.close()
@@ -322,24 +309,30 @@ class Transaksi():
 
     def search(self):
         if self.id.text() == "":
-            self.parent.showDialog("warning","warning","masukan id atau nama pada form ID")
-        else:
-            self.pelanggan.selectAll("pelanggan",True)
+            self.parent.showDialog("warning","warning","tidak ada data yang cocok")
+            return
+        listPelanggan = self.pelanggan.find(
+            "idPelanggan,nama,gender,alamat,kontak,saldo,point", "pelanggan",
+            "idPelanggan", self.id.text(), True,
+            "idPelanggan ASC")
+        if len(listPelanggan) < 1:
             listPelanggan = self.pelanggan.find(
                 "idPelanggan,nama,gender,alamat,kontak,saldo,point", "pelanggan",
-                "idPelanggan", self.id.text(), True,
+                "rfid", self.id.text(), True,
                 "idPelanggan ASC")
-            if len(listPelanggan) < 1:
-                listPelanggan = self.pelanggan.find(
-                    "idPelanggan,nama,gender,alamat,kontak,saldo,point", "pelanggan",
-                    "nama", self.id.text(), True,
-                    "idPelanggan ASC")
+        if len(listPelanggan) < 1:
+            self.parent.showDialog("warning","warning","tidak ada data yang cocok")
+            return
+        if len(listPelanggan) > 1:
             col = 0
             for data in listPelanggan:
                 for val in data:
                     if col is 0:
                         val = self.id.setText(str(val))
-                        pixmap = QtGui.QPixmap(str(self.id.text()) + str(".jpg"))
+                        path = QtCore.QDir.currentPath()
+                        path = path + '/Module/static'
+                        imagepath = path + '/' + self.id.text()+str(".jpg")
+                        pixmap = QtGui.QPixmap(imagepath)
                         self.img.setPixmap(pixmap.scaled(200,170, QtCore.Qt.KeepAspectRatio))
                     if col is 1:
                         val = self.nama.setText(str(val))
@@ -354,8 +347,6 @@ class Transaksi():
                     if col is 6:
                         val = self.point.setText(str(val))
                     col = col + 1
-            if self.nama.text() == "":
-                self.parent.showDialog("warning","warning","tidak ada data yang cocok")
 
     def dont(self):
         self.id.clear()
@@ -385,15 +376,29 @@ class Transaksi():
         self.img.setPixmap(pixmap.scaled(200, 170, QtCore.Qt.KeepAspectRatio))
 
     def count(self):
-        ttl =[]
-        row = self.tabelTransaksi.rowCount()
-        for i in range (row):
+        self.ttl =[]
+        self.ttlname=[]
+        self.ttlz =[]
+        self.ttlid =[]
+        self.ttlprice=[]
+        self.rowz = self.tabelTransaksi.rowCount()
+        for i in range (self.rowz):
+            itemid = self.tabelTransaksi.item(i,0).text()
+            itemname=self.tabelTransaksi.item(i,1).text()
+            itemprice=self.tabelTransaksi.item(i,2).text() 
+            itemz = self.tabelTransaksi.item(i,3).text()
             item = self.tabelTransaksi.item(i,5).text()
-            ttl.append(int(item))
+            self.ttl.append(int(item))
+            self.ttlprice.append(itemprice)
+            self.ttlname.append(itemname)
+            self.ttlz.append(int(itemz))
+            self.ttlid.append(itemid)
         self.alls = 0
-        for x in range (row):
-            self.alls = self.alls + ttl[x]
+        for x in range (self.rowz):
+            self.alls = self.alls + self.ttl[x]
         self.total.setText("Rp " + str(self.alls))
+        self.struck()
+
 
     def struck(self):
         row = self.tabelTransaksi.rowCount()
@@ -426,17 +431,133 @@ class Transaksi():
                 self.parent.showDialog("warning", "warning","saldo tidak mencukupi silahkan lakukan Top up terlebih dahulu")
                 return
             if (int(saldo) >= int(price)):
+                self.idt = self.pelanggan.select("id", "transaksi", False, "id DESC")
+                if self.idt != None :
+                    self.idt = '{:09d}'.format(self.idt[0]+1)
+                else:
+                    self.idt = '{:09d}'.format(1)
+                self.idt = "PAY-" + str(self.idt)
+                m = []
+                for i in range (self.rowz):
+                    keyz = "idProduk = \"{}\""
+                    keyz = keyz.format(self.ttlid[i])
+                    idp = self.ttlid[i]
+                    nam = self.ttlname[i]
+                    har = self.ttlprice[i]
+                    tot = self.ttl[i]
+                    y = self.pelanggan.findCol("stock","daftarbarang",keyz,True)
+                    stockambil = self.ttlz[i]
+                    for s in range(1):
+                        stockawal = y[0][0]
+                        stockakhir =  stockawal - stockambil
+                        keluar = 0 - stockambil
+                        val = "stock =  {}"
+                        val = val.format(stockakhir)
+                        vals = "\"{}\",\"{}\",{}"
+                        vals = vals.format(idp,nam,keluar)
+                        self.pelanggan.insertTo("stock","idProduk,nama,jumlah",vals)
+                        self.pelanggan.update("daftarbarang",val,keyz)
+                        valz = "\"{}\",\"{}\",\"{}\",{},{},\"{}\",\"{}\",\"{}\",{}"
+                        valz = valz.format(self.idt,idp,nam,har,stockambil,self.id.text(),self.nama.text(),"beli",tot)
+                        self.pelanggan.insertTo("transaksi","idTransaksi,idProduk,produk,harga,jumlah,idPelanggan,pelanggan,jenisTransaksi,total",valz)
+
                 money = int(self.saldo2.text())
-                lastmoney = money - self.alls 
+                lastmoney = money - self.alls
                 val = "saldo= {}"
                 val = val.format(lastmoney)
                 key = "idPelanggan = \"{}\""
                 key = key.format(self.id.text())
                 self.pelanggan.update("pelanggan",val,key)
                 self.struck()
+                self.print()
                 self.parent.showDialog("information", "Informasi","Transaksi Berhasil")
                 self.dont()
                 # QtWidgets.QMessageBox.Yes:
         # print("halo")
 
-    # def print(self):
+    def print(self):
+        document = Document()
+
+        #atur paper
+        section = document.sections[0]
+        section.page_height = Mm(297)
+        section.page_width = Mm(58)
+        section.left_margin = Mm(5.08)
+        section.right_margin = Mm(10.16)
+        section.top_margin = Mm(5.08)
+        section.bottom_margin = Mm(86.868)
+        section.space_before = Pt(0)
+        section.space_after = Pt(0)
+        # document.add_picture('download.png', width=Mm(47.4), height=Mm(24))
+        
+        #atur font
+        style = document.styles['Normal']
+        font = style.font
+        font.name = 'Arial'
+        font.size = Pt(7)
+        
+        #atur waktu
+        t = datetime.datetime.now()
+        date = t.strftime("%d/%m/%Y")
+        time = t.strftime("%H:%M")
+        
+        #print date and time and id transaksi
+        id_transaksi = self.idt
+        p1 = document.add_paragraph()
+        p1.alignment = 1
+        p1.add_run(date)
+        p1.add_run(' ')
+        p1.add_run(time)
+        p1.add_run(' " ')
+        p1.add_run(id_transaksi)
+        p1.add_run(' " ')
+        
+        #print list order id pelanggan
+        self.rr = self.id.text()
+        id_pelanggan = self.rr
+        p2 = document.add_paragraph()
+        p2.alignment = 1
+        p2.add_run('List Order from')
+        p2.add_run(' " ')
+        p2.add_run(id_pelanggan)
+        p2.add_run(' " ')
+        
+        #print list permintaan
+        much_item = 4
+        
+        table = document.add_table(rows=1, cols=much_item)
+        hdr_cells = table.rows[0].cells
+        hdr_cells[0].text = 'barang'
+        hdr_cells[1].text = 'QTY'
+        hdr_cells[2].text = 'harga'
+        hdr_cells[3].text = 'total'
+        for barang,QTY, harga, total in self.records:
+            row_cells = table.add_row().cells
+            row_cells[0].text = str(barang)
+            row_cells[1].text = str(QTY)
+            row_cells[2].text = str(harga)
+            row_cells[3].text = str(total)
+            
+        #garis bawah
+        p3 = document.add_paragraph()
+        p3.alignment = 3
+        p3.add_run('.').underline = True
+        p3.add_run('                                                            ').underline = True
+        p3.add_run('.').underline = True
+        
+        #total harga
+        self.tt = self.total.text() 
+        result = self.tt
+        p4 = document.add_paragraph()
+        p4.alignment = 3
+        p4.add_run('total harga :')
+        p4.add_run('               ')
+        p4.add_run(result)
+        
+        path = QtCore.QDir.currentPath()
+        path = path + '/Module/Data Struk'
+        printpath = path + '/' + "struk_transaksi.docx"
+
+        document.save(printpath)
+
+        os.startfile(printpath,"print")
